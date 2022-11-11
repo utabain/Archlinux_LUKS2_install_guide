@@ -45,7 +45,7 @@ The connection may now be verified with ping,
 ### Update the system clock
 To ensure that the system clock is accurate, please run this command:
 ```
-timedatectl set-ntp true
+# timedatectl set-ntp true
 ```
 ### Partition the disk
 When recognized by the live system, disks are assigned to a block device such as `/dev/sda`, `/dev/nvme0n1` or `/dev/mmcblk0`. To identify these devices, use the
@@ -61,7 +61,7 @@ Number |           Size          | Code |    Type    |
 
 Run the gdisk with the name of the block device you want to use. This example uses /dev/nvme0n1:
 ```
-gdisk /dev/nvme0n1
+# gdisk /dev/nvme0n1
 ```
 When you get into your desired block device type in the following commands,
 
@@ -82,50 +82,70 @@ w
 ```
 Create the encrypted container on the Linux LUKS partition and set the passphrase:
 ```
-cryptsetup --hash sha512 --iter-time 5000 --key-size 512 luksFormat /dev/[Your Device]p2
+# cryptsetup --hash sha512 --iter-time 5000 --key-size 512 luksFormat /dev/[Your Device]p2
 ```
 Open the container (decrypt it and make available at /dev/mapper/cryptlvm)
 ```
-cryptsetup luksOpen /dev/[Your device]p3 cryptlvm
+# cryptsetup luksOpen /dev/[Your device]p3 cryptlvm
 ```
 ### Preparing the logical volumes
 Create a physical volume on top of the opened LUKS container:
 ```
-pvcreate /dev/mapper/cryptlvm
+# pvcreate /dev/mapper/cryptlvm
 ```
 Create the volume group and add physical volume to it:
 ```
-vgcreate vg /dev/mapper/cryptlvm
+# vgcreate vg /dev/mapper/cryptlvm
 ```
 Create logical volumes on the volume group for swap and root,
 (Swap size is a matter of personal preference, 8GB is just a placeholder):
 ```
-lvcreate -L 8G vg -n swap
-lvcreate -l 100%FREE vg -n root
+# lvcreate -L 8G vg -n swap
+# lvcreate -l 100%FREE vg -n root
 ```
-Format filesystems on each logical volume:
+Create a fileystem for ext4 to `/dev/vg/root` using the mkfs command:
 ```
-mkfs.ext4 /dev/vg/root
-mkfs.ext4 /dev/vg/home
-mkswap /dev/vg/swap
+# mkfs.ext4 /dev/vg/root
 ```
-Mount filesystems
+Create a filesystem for `/dev/vg/swap` using the mkswap command:
 ```
-mount /dev/vg/root /mnt
-mkdir /mnt/home
-mount /dev/vg/home /mnt/home
-swapon /dev/vg/swap
+# mkswap /dev/vg/swap
 ```
 Create a filesystem for the EFI System partition:
 ```
-mkfs.fat -F32 /dev/nvme0n1p1
+# mkfs.fat -F32 /dev/nvme0n1p1
 ```
-Format cryptdata with the btrfs filesystem:
+Disabling journaling:
 ```
-mkfs.btrfs /dev/mapper/cryptdata
+# tune2fs -O "^has_journal" /dev/vg/root
 ```
-### Mount the partitions and create btrfs subvolumes
-Mount `/dev/mapper/cryptdata` to `/mnt`:
+Mount `/dev/[Your Device]p2` to `/mnt/efi`
 ```
-mount /dev/mapper/cryptdata /mnt
+# mount /dev/[Your device]p2 /mnt/efi
 ```
+Mount `/dev/vg/root` to `/mnt`:
+```
+# mount /dev/vg/root /mnt
+```
+Activate the swap file:
+```
+# swapon /dev/vg/swap
+```
+### Installation
+Install necessary packages
+```
+# pacstrap /mnt base linux linux-firmware mkinitcpio lvm2 vim dhcpcd wpa_supplicant network_manager sbsigntools dracut efibootmgr
+
+git [Your processor manufacturer (x86 based cpu's only)]-ucode
+
+```
+### Configure the system (Pre-chroot)
+
+Generate an fstab file:
+```
+genfstab -U /mnt >> /mnt/etc/fstab
+```
+(optional) Change relatime option to noatime
+| /mnt/etc/fstab |
+| -------------  |
+| col 3 is       |
