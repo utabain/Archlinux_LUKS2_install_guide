@@ -229,3 +229,51 @@ genfstab -U /mnt >> /mnt/etc/fstab
 | /mnt/etc/fstab |
 | -------------  |
 | WIP            |
+
+Copy the `ykfde.conf` file for later use:
+```
+# cp /etc/ykfde.conf /mnt/
+```
+### Change root into the new system
+Use the `chroot` command to acomplish the above:
+```
+# arch-chroot /mnt
+```
+At this point you should have the following partitions and logical volumes:
+
+('100%FREE' is just a place holder for the remainder of your drive aswell as 'chosen ammount' being a place holder for the ammount of swap space you dedicated to the swap partition)
+
+`lsblk`
+NAME           | MAJ:MIN | RM  |  SIZE          | RO  | TYPE  | MOUNTPOINT |
+---------------|---------|-----|----------------|-----|-------|------------|
+nvme0n1        |  259:0  |  0  | 100%FREE       |  0  | disk  |            |
+├─nvme0n1p2    |  259:4  |  0  | 512M           |  0  | part  | /efi       |
+├─nvme0n1p3    |  259:5  |  0  | 100%FREE       |  0  | part  |            |
+..└─cryptlvm   |  254:0  |  0  | 100%FREE       |  0  | crypt |            |
+....├─vg-swap  |  254:1  |  0  | chosen ammount |  0  | lvm   | [SWAP]     |
+....└─vg-root  |  254:2  |  0  | 100%FREE       |  0  | lvm   | /          |
+
+### Configuring the system (Post-chroot)
+#### Timezone
+To configure the timezone correctly replace `Europe/London` with your respective timezone found in `/usr/share/zoneinfo`
+```
+ln -sf /usr/share/zoneinfo/Europe/:ondon /etc/localtime
+```
+Run `hwclock` to generate `/etc/adjtime`:
+
+(Assumes hardware clock is set to UTC)
+```
+# hwclock --systohc
+```
+#### Localization
+Uncomment `en_GB.UTF-8 UTF-8` in `/etc/locale.gen` and generate the locale,
+
+('en_GB.UTF-8 UTF-8' is just a placeholder, replace with your respective locale):
+```
+# locale-gen
+```
+If you set the console keyboard layout, make the changes persistent in vconsole.conf:
+/etc/vconsole.conf
+```
+KEYMAP=uk
+```
