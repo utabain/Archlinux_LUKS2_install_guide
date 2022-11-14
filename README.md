@@ -80,7 +80,7 @@ n
 8309
 w
 ```
-### Yubikey 
+### Yubikey 2fa setup (Pre-chroot)
 Update the package database:
 ```
 # pacman -Sy
