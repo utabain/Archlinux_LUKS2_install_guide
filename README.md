@@ -217,10 +217,7 @@ Activate the swap file:
 ### Installation
 Install necessary packages
 ```
-# pacstrap /mnt base linux linux-firmware mkinitcpio lvm2 vim dhcpcd wpa_supplicant network_manager sbsigntools dracut efibootmgr
-
-git [Your processor manufacturer (x86 based cpu's only)]-ucode
-
+# pacstrap /mnt base linux linux-firmware mkinitcpio lvm2 vim dhcpcd wpa_supplicant network_manager sbsigntools dracut efibootmgr git [Your processor manufacturer (x86 based cpu's only)]-ucode
 ```
 ### Configure the system (Pre-chroot)
 
@@ -231,4 +228,4 @@ genfstab -U /mnt >> /mnt/etc/fstab
 (optional) Change relatime option to noatime
 | /mnt/etc/fstab |
 | -------------  |
-| col 3 is       |
+| WIP            |
