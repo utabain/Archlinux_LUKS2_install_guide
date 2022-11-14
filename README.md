@@ -80,13 +80,96 @@ n
 8309
 w
 ```
-Create the encrypted container on the Linux LUKS partition and set the passphrase:
+### Yubikey 
+Update the package database:
 ```
-# cryptsetup --hash sha512 --iter-time 5000 --key-size 512 luksFormat /dev/[Your Device]p2
+# pacman -Sy
 ```
-Open the container (decrypt it and make available at /dev/mapper/cryptlvm)
+Install required packages:
 ```
-# cryptsetup luksOpen /dev/[Your device]p3 cryptlvm
+# pacman -S make git yubikey-personalization cryptsetup udisks2 expect
+```
+Clone the `yubikey-full-disk-encryption repository`:
+```
+# git clone https://github.com/agherzan/yubikey-full-disk-encryption.git
+```
+`cd` into the directory created by `git`:
+```
+# cd yubikey-full-disk-encryption
+```
+Install using the `make` command:
+```
+# make install
+```
+Now it's time to prepare the second slot of your YubiKey for the challenge response authentication:
+```
+ykpersonalize -v -2 -ochal-resp -ochal-hmac -ohmac-lt64 -ochal-btn-trig -oserial-api-visible
+```
+Get the UUID of `/dev/nvme0n1p2`:
+```
+# partprobe
+# ls -l /dev/disk/by-uuid/ | grep nvme0n1p2
+```
+Edit `/etc/ykfde.conf`:
+```
+### Configuration for 'yubikey-full-disk-encryption'.
+### Remove hash (#) symbol and set non-empty ("") value for chosen options to
+### enable them.
+
+### *REQUIRED* ###
+
+# Set to non-empty value to use 'Automatic mode with stored challenge (1FA)'.
+#YKFDE_CHALLENGE="insert-password-here"
+
+# Use 'Manual mode with secret challenge (2FA)'.
+YKFDE_CHALLENGE_PASSWORD_NEEDED="1"
+
+# YubiKey slot configured for 'HMAC-SHA1 Challenge-Response' mode.
+# Possible values are "1" or "2". Defaults to "2".
+YKFDE_CHALLENGE_SLOT="2"
+
+### OPTIONAL ###
+
+# UUID of device to unlock with 'cryptsetup'.
+# Leave empty to use 'cryptdevice' boot parameter.
+#YKFDE_DISK_UUID="UUID of /dev/nvme0n1p2"
+
+# LUKS encrypted volume name after unlocking.
+# Leave empty to use 'cryptdevice' boot parameter.
+#YKFDE_LUKS_NAME="cryptlvm"
+
+# Device to unlock with 'cryptsetup'. If left empty and 'YKFDE_DISK_UUID'
+# is enabled this will be set as "/dev/disk/by-uuid/$YKFDE_DISK_UUID".
+# Leave empty to use 'cryptdevice' boot parameter.
+#YKFDE_LUKS_DEV=""
+
+# Optional flags passed to 'cryptsetup'. Example: "--allow-discards" for TRIM
+# support. Leave empty to use 'cryptdevice' boot parameter.
+#YKFDE_LUKS_OPTIONS=""
+
+# Number of times to try assemble 'ykfde passphrase' and run 'cryptsetup'.
+# Defaults to "5".
+#YKFDE_CRYPTSETUP_TRIALS="5"
+
+# Number of seconds to wait for inserting YubiKey, "-1" means 'unlimited'.
+# Defaults to "30".
+#YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT="30"
+
+# Number of seconds to wait after successful decryption.
+# Defaults to empty, meaning NO wait.
+#YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP=""
+
+# Verbose output. It will print all secrets to terminal.
+# Use only for debugging.
+#DBG="1"
+```
+Create the LUKS2 encrypted container on the Linux LUKS partition with `ykfde-format`:
+```
+ykfde-format --cipher aes-xts-plain64 --key-size 512 --hash sha512 --iter-time 5000 --type luks2 /dev/nvme0n1p2
+```
+Unlock the encrypted partition with `ykfde-open`:
+```
+# ykfde-open -d /dev/nvme0n1p2 -n cryptlvm
 ```
 ### Preparing the logical volumes
 Create a physical volume on top of the opened LUKS container:
