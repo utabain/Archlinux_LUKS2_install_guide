@@ -53,32 +53,20 @@ command bellow:
 ```
 # fdisk -l
 ```
-Create EFI System and Linux LUKS partitions:
+Zap the disk,
+(**WARNING** This will irreversibly delete all data on your disk, please backup any important data):
+```
+sgdisk --zap-all /dev/nvme0n1
+```
+Create the partitions using the `sgdisk` command:
 Number |           Size          | Code |    Type    |
 -------|-------------------------|------|------------|
-   0   | 512.0 MiB               | EF00 | EFI System |
-   1   | Remainder of the device | 8309 | Linux LUKS |
-
-Run the gdisk with the name of the block device you want to use. This example uses /dev/nvme0n1:
+   1   | 555.0 MiB               | EF00 | EFI System |
+   2   | Remainder of the device | 8309 | Linux LUKS |
 ```
-# gdisk /dev/nvme0n1
-```
-When you get into your desired block device type in the following commands,
-
-(**THIS WILL IRREVEESIBLY ERASE YOUR DATA, MAKE SURE THAT YOU HAVE ALL IMPORTANT FILES BACKED UP**!):
-```
-o
-n
-[Enter]
-[Enter]
-+512M
-ef00
-n
-[Enter]
-[Enter]
-[Enter]
-8309
-w
+sgdisk --clear \
+       --new=1:0:+550MiB --typecode=1:ef00 \
+       --new=3:0:0       --typecode=2:8309 /dev/nvme0n1
 ```
 ### Yubikey 2fa setup (Pre-chroot)
 Update the package database:
@@ -137,31 +125,6 @@ YKFDE_CHALLENGE_SLOT="2"
 # LUKS encrypted volume name after unlocking.
 # Leave empty to use 'cryptdevice' boot parameter.
 #YKFDE_LUKS_NAME="cryptlvm"
-
-# Device to unlock with 'cryptsetup'. If left empty and 'YKFDE_DISK_UUID'
-# is enabled this will be set as "/dev/disk/by-uuid/$YKFDE_DISK_UUID".
-# Leave empty to use 'cryptdevice' boot parameter.
-#YKFDE_LUKS_DEV=""
-
-# Optional flags passed to 'cryptsetup'. Example: "--allow-discards" for TRIM
-# support. Leave empty to use 'cryptdevice' boot parameter.
-#YKFDE_LUKS_OPTIONS=""
-
-# Number of times to try assemble 'ykfde passphrase' and run 'cryptsetup'.
-# Defaults to "5".
-#YKFDE_CRYPTSETUP_TRIALS="5"
-
-# Number of seconds to wait for inserting YubiKey, "-1" means 'unlimited'.
-# Defaults to "30".
-#YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT="30"
-
-# Number of seconds to wait after successful decryption.
-# Defaults to empty, meaning NO wait.
-#YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP=""
-
-# Verbose output. It will print all secrets to terminal.
-# Use only for debugging.
-#DBG="1"
 ```
 Create the LUKS2 encrypted container on the Linux LUKS partition with `ykfde-format`:
 ```
@@ -332,3 +295,11 @@ initrd /intel-ucode.img # only if you are using an Intel CPU
 initrd /initramfs-linux.img
 options root=/dev/mapper/root
 ```
+Edit `/boot/loader/loader.conf` to look like this:
+```
+default arch
+timeout 4
+console-mode max
+editor no
+```
+
