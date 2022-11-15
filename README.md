@@ -101,7 +101,7 @@ Install using the `make` command:
 ```
 # make install
 ```
-Now it's time to prepare the second slot of your YubiKey for the challenge response authentication:
+Prepare the second slot of your YubiKey for the challenge response authentication:
 ```
 ykpersonalize -v -2 -ochal-resp -ochal-hmac -ohmac-lt64 -ochal-btn-trig -oserial-api-visible
 ```
@@ -215,9 +215,9 @@ Activate the swap file:
 # swapon /dev/vg/swap
 ```
 ### Installation
-Install necessary packages
+Install necessary packages:
 ```
-# pacstrap /mnt base linux linux-firmware mkinitcpio lvm2 vim dhcpcd wpa_supplicant network_manager sbsigntools dracut efibootmgr git [Your processor manufacturer (x86 based cpu's only)]-ucode
+# pacstrap /mnt base linux linux-firmware mkinitcpio lvm2 vim dhcpcd wpa_supplicant network_manager sbsigntools dracut efibootmgr git
 ```
 ### Configure the system (Pre-chroot)
 
@@ -272,8 +272,63 @@ Uncomment `en_GB.UTF-8 UTF-8` in `/etc/locale.gen` and generate the locale,
 ```
 # locale-gen
 ```
-If you set the console keyboard layout, make the changes persistent in vconsole.conf:
-/etc/vconsole.conf
+The default console keymap is US. Available layouts can be listed with:
 ```
-KEYMAP=uk
+# ls /usr/share/kbd/keymaps/**/*.map.gz
+```
+If you set the console keyboard layout, make the changes persistent in `vconsole.conf`,
+
+('KEYMAP=us' is just a placeholder see command above to view all avalible layouts):
+```
+echo KEYMAP=us > /etc/vconsole.conf
+```
+### Network configuration
+Create the hostname file,
+
+('myhostname' is just a placeholder, rename it to anything that you'd like):
+```
+echo myhostname > /etc/hostname
+```
+Create the hostname file:
+`/etc/hosts`
+```
+127.0.0.1 localhost
+::1 localhost
+127.0.1.1 myhostname.localdomain myhostname
+```
+This is a unique name for identifying your machine on a network.
+### Initramfs
+Add the `keyboard`, `ykfde`, `consolefont`, `keymap` and `lvm2` hooks to `/etc/mkinitcpio.conf`,
+
+(ordering matters):
+```
+HOOKS=(base udev autodetect consolefont modconf block keymap lvm2 filesystems fsck keyboard ykfde)
+```
+Additionally, the ext4 module is needed. Add ext4 to the MODULES:
+```
+MODULES=(ext4)
+```
+Recreate the initramfs image:
+```
+mkinitcpio -p linux
+```
+### Install microcode
+> Processor manufacturers release stability and security updates to the processor microcode. These updates provide bug fixes that can be critical to the stability of your system. Without them, you may experience spurious crashes or unexpected system halts that can be difficult to track down.
+> 
+> All users with an AMD or Intel CPU should install the microcode updates to ensure system stability.
+```
+pacman -S intel-ucode
+```
+### Install and configure systemd-boot
+Use `bootctl` to install systemd-boot into the EFI system partition:
+```
+# bootctl --path=/boot install
+```
+Create a loader entry `/boot/loader/entries/arch.conf` of your Arch Linux installation:
+```
+title Arch Linux
+linux /vmlinuz-linux
+initrd /intel-ucode.img # only if you are using an Intel CPU
+initrd /initramfs-linux.img
+options root=/dev/mapper/root
 ```
