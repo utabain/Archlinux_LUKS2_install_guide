@@ -1,7 +1,4 @@
 # Arch Linux Full-Disk Encryption Installation Guide
-### Pre-boot
-Clear existing keys and reset Secure Boot to Setup Mode on firmware settings
-
 ### Set the console keyboard layout
 The default console keymap is US. Available layouts can be listed with:
 ```
