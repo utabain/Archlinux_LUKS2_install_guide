@@ -192,9 +192,10 @@ Generate an fstab file:
 genfstab -U /mnt >> /mnt/etc/fstab
 ```
 (optional) Change relatime option to noatime
-| /mnt/etc/fstab |
-| -------------  |
-| WIP            |
+| /mnt/etc/fstab                                                  |
+| --------------------------------------------------------------- |
+| # /dev/mapper/vg-root                                           |
+| UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx / ext4 rw,noatime 0 1 |
 
 Copy the `ykfde.conf` file for later use:
 ```
@@ -210,13 +211,14 @@ At this point you should have the following partitions and logical volumes:
 ('100%FREE' is just a place holder for the remainder of your drive aswell as 'chosen ammount' being a place holder for the ammount of swap space you dedicated to the swap partition)
 
 `lsblk`
-NAME         | MAJ:MIN | RM  |  SIZE          | RO  | TYPE  | MOUNTPOINT |
--------------|---------|-----|----------------|-----|-------|------------|
-nvme0n1p1    |  259:3  |  0  | 512M           |  0  | part  | /efi       |
-nvme0n1p2    |  259:4  |  0  | 100%FREE       |  0  | part  |            |
-└─cryptlvm   |  254:0  |  0  | 100%FREE       |  0  | crypt |            |
-..├─vg-swap  |  254:1  |  0  | chosen ammount |  0  | lvm   | [SWAP]     |
-..└─vg-root  |  254:2  |  0  | 100%FREE       |  0  | lvm   | /          |
+NAME           | MAJ:MIN | RM  |  SIZE          | RO  | TYPE  | MOUNTPOINT |
+---------------|---------|-----|----------------|-----|-------|------------|
+nvme0n1        |  259:0  |  0  | 465.8G         |  0  | disk  |            |
+├─nvme0n1p1    |  259:3  |  0  | 512M           |  0  | part  | /efi       |
+├─nvme0n1p2    |  259:4  |  0  | 100%FREE       |  0  | part  |            |
+..└─cryptlvm   |  254:0  |  0  | 100%FREE       |  0  | crypt |            |
+....├─vg-swap  |  254:1  |  0  | chosen ammount |  0  | lvm   | [SWAP]     |
+....├─vg-root  |  254:2  |  0  | 100%FREE       |  0  | lvm   | /          |
 
 ### Configuring the system (Post-chroot)
 #### Timezone
