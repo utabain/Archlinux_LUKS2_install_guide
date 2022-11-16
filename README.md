@@ -1,4 +1,7 @@
 # Arch Linux Full-Disk Encryption Installation Guide
+### Pre-boot
+Clear existing keys and reset Secure Boot to Setup Mode on firmware settings
+
 ### Set the console keyboard layout
 The default console keymap is US. Available layouts can be listed with:
 ```
@@ -207,14 +210,13 @@ At this point you should have the following partitions and logical volumes:
 ('100%FREE' is just a place holder for the remainder of your drive aswell as 'chosen ammount' being a place holder for the ammount of swap space you dedicated to the swap partition)
 
 `lsblk`
-NAME           | MAJ:MIN | RM  |  SIZE          | RO  | TYPE  | MOUNTPOINT |
----------------|---------|-----|----------------|-----|-------|------------|
-nvme0n1        |  259:0  |  0  | 100%FREE       |  0  | disk  |            |
-├─nvme0n1p2    |  259:4  |  0  | 512M           |  0  | part  | /efi       |
-├─nvme0n1p3    |  259:5  |  0  | 100%FREE       |  0  | part  |            |
-..└─cryptlvm   |  254:0  |  0  | 100%FREE       |  0  | crypt |            |
-....├─vg-swap  |  254:1  |  0  | chosen ammount |  0  | lvm   | [SWAP]     |
-....└─vg-root  |  254:2  |  0  | 100%FREE       |  0  | lvm   | /          |
+NAME         | MAJ:MIN | RM  |  SIZE          | RO  | TYPE  | MOUNTPOINT |
+-------------|---------|-----|----------------|-----|-------|------------|
+nvme0n1p1    |  259:3  |  0  | 512M           |  0  | part  | /efi       |
+nvme0n1p2    |  259:4  |  0  | 100%FREE       |  0  | part  |            |
+└─cryptlvm   |  254:0  |  0  | 100%FREE       |  0  | crypt |            |
+..├─vg-swap  |  254:1  |  0  | chosen ammount |  0  | lvm   | [SWAP]     |
+..└─vg-root  |  254:2  |  0  | 100%FREE       |  0  | lvm   | /          |
 
 ### Configuring the system (Post-chroot)
 #### Timezone
@@ -302,4 +304,84 @@ timeout 4
 console-mode max
 editor no
 ```
+### Install secure boot
+Install `sbctl`:
+```
+pacman -S sbctl
+```
+Check the status of `sbctl`:
 
+`sbctl status`
+```
+Installed:    Sbctl is not installed
+Setup Mode:   Enabled
+Secure Boot:  Disabled
+```
+Verify file database and EFI images in `/efi`:
+
+`# sbctl verify`
+```
+Verifying file database and EFI images in /efi...
+✘ /boot/vmlinuz-linux is not signed
+✘ /efi/EFI/BOOT/BOOTX64.EFI is not signed
+✘ /efi/EFI/BOOT/KeyTool-signed.efi is not signed
+✘ /efi/EFI/Linux/linux-linux.efi is not signed
+✘ /efi/EFI/arch/fwupdx64.efi is not signed
+✘ /efi/EFI/systemd/systemd-bootx64.efi is not signed
+```
+Sign the required files:
+
+`# sbctl sign -s /efi/EFI/BOOT/BOOTX64.EFI`
+```
+✔ Signed /efi/EFI/BOOT/BOOTX64.EFI...
+```
+`# sbctl sign -s /efi/EFI/arch/fwupdx64.efi`
+```
+✔ Signed /efi/EFI/arch/fwupdx64.efi...
+```
+`# sbctl sign -s /efi/EFI/systemd/systemd-bootx64.efi`
+```
+✔ Signed /efi/EFI/systemd/systemd-bootx64.efi...
+```
+`# sbctl sign -s /usr/lib/fwupd/efi/fwupdx64.efi -o /usr/lib/fwupd/efi/fwupdx64.efi.signed`
+```
+✔ Signed /usr/lib/fwupd/efi/fwupdx64.efi...
+```
+
+Verify that you have signed the required packages:
+
+`# sbctl verify`
+```
+Verifying file database and EFI images in /efi...
+✔ /usr/lib/fwupd/efi/fwupdx64.efi.signed is signed
+✔ /efi/EFI/BOOT/BOOTX64.EFI is signed
+✔ /efi/EFI/arch/fwupdx64.efi is signed
+✔ /efi/EFI/systemd/systemd-bootx64.efi is signed
+✘ /boot/vmlinuz-linux is not signed
+✘ /efi/EFI/BOOT/KeyTool-signed.efi is not signed
+✘ /efi/EFI/Linux/linux-linux.efi is not signed
+```
+`# sbctl list-files`
+```
+/boot/vmlinuz-linux
+Signed:		✘ Not Signed
+
+/efi/EFI/BOOT/KeyTool-signed.efi
+Signed:		✘ Not Signed
+
+/efi/EFI/Linux/linux-linux.efi
+Signed:		✘ Not Signed
+
+/efi/EFI/arch/fwupdx64.efi
+Signed:		✔ Signed
+
+/efi/EFI/BOOT/BOOTX64.EFI
+Signed:		✔ Signed
+
+/usr/lib/fwupd/efi/fwupdx64.efi
+Signed:		✔ Signed
+Output File:	/usr/lib/fwupd/efi/fwupdx64.efi.signed
+
+/efi/EFI/systemd/systemd-bootx64.efi
+Signed:		✔ Signed
+```
