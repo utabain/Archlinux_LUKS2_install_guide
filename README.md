@@ -269,6 +269,26 @@ reboot
 > 
 > For the standard Arch Linux post-installation steps, [RTFM](https://wiki.archlinux.org/index.php/General_recommendations).
 ### Connect to wifi (optional)
+Enable Your Wi-Fi Device:
+```
+nmcli radio wifi on
+```
+Identify a Wi-Fi Access Point:
+```
+nmcli dev wifi list
+```
+Connect to Wi-Fi,
+
+('network-ssid' is just a placeholder. Replace this with the ssid of your network, avalible networks can be shown with the command above):
+```
+sudo nmcli dev wifi connect network-ssid
+```
+If you have WEP or WPA security on your WI-Fi, you can specify the network password in the command as well,
+
+('network-ssid' and 'network-password' are both placeholders, replace with the correct values):
+```
+sudo nmcli dev wifi connect network-ssid password "network-password"
+```
 ### Preparation: booting from a unified kernel image
 A Unified Kernel Image is a compilation containing the following:
 
