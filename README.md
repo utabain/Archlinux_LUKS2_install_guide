@@ -351,4 +351,4 @@ Reboot into the UEFI interface and ensure that Secure Boot is still enabled. Ver
 Test booting into Arch and Arch fallback. All should succeed without issues.
 
 ## Final thoughts
-At this point you should have a fully working ArchLinux installation. 
+At this point you should have a fully working ArchLinux installation. THIS FINAL SECTION IS A WIP
