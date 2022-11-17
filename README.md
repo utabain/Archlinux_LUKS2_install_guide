@@ -9,7 +9,7 @@ To set the keyboard layout, pass a corresponding file name to loadkeys, omitting
 # loadkeys de-latin1
 ```
 ## Connect to the internet
-Ethernet should be automatic in the arch iso, if any errors occour be sure to consult the archwiki or community fourm.
+> Ethernet should be automatic in the arch iso, if any errors occour be sure to consult the archwiki or community fourm.
 
 ### Connect to wifi (optional):
 ```
@@ -218,7 +218,7 @@ Use `bootctl` to install systemd-boot into the EFI system partition:
 ```
 Find the UUID of your root partition (not the encrypted volume within):
 ```
-blkid | grep nvme0n1p2 | awk '{print $2}'
+blkid | grep /dev/vg/root | awk '{print $2}'
 ```
 Create a loader entry `/boot/loader/entries/arch.conf` of your Arch Linux installation,
 
@@ -228,7 +228,7 @@ title Arch Linux
 linux /vmlinuz-linux
 initrd /intel-ucode.img # only if you are using an Intel CPU
 initrd /initramfs-linux.img
-options rd.luks.name=Your_UUID=root rd.luks.options=fido2-device=auto root=/dev/mapper/root
+options rd.luks.name=Your_UUID=root rd.luks.options=fido2-device=auto root=/dev/mapper/vg-root
 ```
 Edit `/boot/loader/loader.conf` to look like this:
 ```
@@ -237,13 +237,95 @@ timeout 4
 console-mode max
 editor no
 ```
+Restrict access to the `/boot` directory:
+```
+chmod 700 /boot
+```
 ## Disk decryption with FIDO2/YubiKey
 Enroll the key:
 ```
-systemd-cryptenroll --fido2-device=auto /dev/nvme0n1p2
+systemd-cryptenroll --fido2-device=auto /dev/mapper/vg-root
 ```
 Edit `/etc/crypttab.initramfs` (may be nonexistent or empty) and add the following lines:
 ```
 # <name>    <device>    <password>  <options>
-root	/dev/nvme0n1p2	-	fido2-device=auto
+root	/dev/mapper/vg-root	-	fido2-device=auto
 ```
+## Exiting chroot
+Set the root password:
+```
+passwd
+```
+Exit the chroot enviorment:
+```
+exit
+```
+Reboot the system:
+```
+reboot
+```
+## Post-install
+> Your system should now be fully installed, bootable, and fully encrypted.
+> 
+> For the standard Arch Linux post-installation steps, [RTFM](https://wiki.archlinux.org/index.php/General_recommendations).
+### Connect to wifi (optional)
+### Preparation: booting from a unified kernel image
+A Unified Kernel Image is a compilation containing the following:
+
+> • UEFI bootloader executable
+> 
+> • Linux kernel
+> 
+> • initramfs
+> 
+> • Kernel command-line arguments
+
+Edit `/etc/mkinitcpio.d/linux.preset` and add the following lines:
+```
+ALL_microcode=(/boot/*-ucode.img)
+default_efi_image="/boot/EFI/Linux/linux.efi"
+default_options=""
+fallback_efi_image="/boot/EFI/Linux/fallback.efi"
+```
+Edit the line starting with fallback_options in `/etc/mkinitcpio.d/linux.preset` to contain:
+```
+fallback_options="-S autodetect --splash /usr/share/systemd/bootctl/splash-arch.bmp"
+```
+Remove any references to initrd/initramfs:
+```
+cat /proc/cmdline > /etc/kernel/cmdline
+```
+Recreate the initramfs image:
+```
+mkinitcpio -P linux
+```
+Reboot and make sure that you have two new entries in your systemd-boot menu:
+
+one for Arch Linux, and one for Arch Linux fallback.
+### Enrolling your key into secure boot
+> Reboot into your UEFI interface and enable secure boot. Set the secure boot mode setting to 
+>
+> “Setup mode,” which allows enrolling new keys. Then boot back into Arch.
+
+Install `sbctl`:
+```
+pacman -S sbctl
+```
+Create a private key:
+```
+sbctl create-keys
+```
+Enroll the newly created keys:
+```
+sbctl enroll-keys
+```
+Sign each of the EFI files that may appear somewhere in the boot chain:
+```
+sbctl sign -s /boot/EFI/Linux/linux.efi
+sbctl sign -s /boot/EFI/Linux/fallback.efi
+sbctl sign -s /boot/EFI/systemd/systemd-bootx64.efi
+sbctl sign -s /boot/EFI/Boot/bootx64.efi
+```
+Reboot into the UEFI interface and ensure that Secure Boot is still enabled. Verify that the Secure Boot mode setting has changed to "User mode".
+
+Test booting into Arch and Arch fallback. All should succeed without issues.
