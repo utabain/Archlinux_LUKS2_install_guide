@@ -63,7 +63,7 @@ sgdisk --zap-all /dev/nvme0n1
 Create the partitions using the `sgdisk` command:
 Number |           Size          | Code |    Type    |
 -------|-------------------------|------|------------|
-   1   | 555.0 MiB               | EF00 | EFI System |
+   1   | 550.0 MiB               | EF00 | EFI System |
    2   | Remainder of the device | 8309 | Linux LUKS |
 ```
 sgdisk --clear \
@@ -350,5 +350,22 @@ Reboot into the UEFI interface and ensure that Secure Boot is still enabled. Ver
 
 Test booting into Arch and Arch fallback. All should succeed without issues.
 
-## Final thoughts
-At this point you should have a fully working ArchLinux installation. THIS FINAL SECTION IS A WIP
+## Sources
+> https://wiki.archlinux.org/title/installation_guide
+>
+> https://wiki.archlinux.org/title/Iwd#iwctl
+>
+> https://wiki.archlinux.org/title/GPT_fdisk
+>
+> https://gist.github.com/huntrar/e42aee630bee3295b2c671d098c81268
+>
+> https://wiki.archlinux.org/title/ext4
+>
+> https://wiki.archlinux.org/title/systemd-boot
+>
+> https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html
+>
+> https://man.archlinux.org/man/nmcli.1.en
+>
+> https://saligrama.io/blog/post/upgrading-personal-security-evil-maid/#disk-decryption-with-fido2yubikey
+
