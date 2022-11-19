@@ -76,16 +76,16 @@ cryptsetup luksFormat -h sha512 -i 5000 /dev/nvme0n1p2
 ```
 Open the newly created container:
 ```
-cryptsetup open /dev/nvme0n1p2 root
+cryptsetup open /dev/nvme0n1p2 cryptlvm
 ```
 ## Preparing the logical volumes
 Create a physical volume on top of the opened LUKS container:
 ```
-# pvcreate /dev/mapper/root
+# pvcreate /dev/mapper/cryptlvm
 ```
 Create the volume group and add physical volume to it:
 ```
-# vgcreate vg /dev/mapper/root
+# vgcreate vg /dev/mapper/cryptlvm
 ```
 Create logical volumes on the volume group for swap and root,
 (Swap size is a matter of personal preference, 8GB is just a placeholder):
@@ -135,7 +135,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 (optional) Change relatime option to noatime
 | /mnt/etc/fstab                                                  |
 | --------------------------------------------------------------- |
-| # /dev/mapper/vg-root                                           |
+| # /dev/mapper/cryptlvm                                          |
 | UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx / ext4 rw,noatime 0 1 |
 
 ## Change root into the new system
